@@ -1,9 +1,13 @@
 import functools
 import re
+from typing import Any, Dict, Tuple
 
 import parsimonious
 from parsimonious import (
     expressions,
+)
+from parsimonious.nodes import (
+    Node,
 )
 
 from eth_abi.exceptions import (
@@ -137,7 +141,52 @@ class NodeVisitor(parsimonious.NodeVisitor):  # type: ignore[misc] # subclasses 
 visitor = NodeVisitor()
 
 
-class ABIType:
+class _ABITypeSingletonMeta(type):
+    def __init__(self, name, bases, namespace):
+        """
+        Initialize the metaclass with a name, bases, and namespace.
+
+        Args:
+            name: The name of the class being created.
+            bases: A tuple of base classes.
+            namespace: A dictionary representing the class namespace.
+        """
+
+        super().__init__(name, bases, namespace)
+
+        self.__instances__: Dict[Tuple[Any, ...], Any] = {}
+        """A cache that holds the singleton instance for each key."""
+
+    def __call__(self, *init_args, **init_kwargs):
+        key = self._make_key(init_args, init_kwargs)
+        singleton = self.__instances__.get(key)
+        if singleton is None:
+            singleton = super().__call__(*init_args, **init_kwargs)
+            self.__instances__[key] = singleton
+        return singleton
+
+    def _make_key(self, init_args: Tuple[Any, ...], init_kwargs: Dict[str, Any]) -> Tuple[Any, ...]:
+        # TODO: optimize this a bit better, we can know the init args at the time of class
+        # creation so we should use that info since this code is called in tight loops
+        kwargs_key = []
+        for k in sorted(init_kwargs):
+            kwargs_key.append(k)
+            v = init_kwargs[k]
+            kwargs_key.append(
+                repr(v)
+                # Node isn't hashable but has a special repr method which makes it's repr suitable for use as a key
+                # TODO: PR a hash method to parsimonius, they already describe a Node as immutable
+                if isinstance(v, Node)
+                else tuple(v)
+                if isinstance(v, list)
+                else v
+            )
+        # should be quicker to hash if we just make 1 tuple with unpacked values
+        return *init_args, *kwargs_key
+        
+
+
+class ABIType(metaclass=_ABITypeSingletonMeta):
     """
     Base class for results of type string parsing operations.
     """
@@ -159,6 +208,9 @@ class ABIType:
 
     def __repr__(self):  # pragma: no cover
         return f"<{type(self).__qualname__} {repr(self.to_type_str())}>"
+
+    def __hash__(self) -> int:
+        return id(self)
 
     def __eq__(self, other):
         # Two ABI types are equal if their string representations are equal

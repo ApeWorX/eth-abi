@@ -16,6 +16,7 @@ from eth_abi.decoding import (
 )
 from eth_abi.exceptions import (
     EncodingError,
+    MultipleEntriesFound,
 )
 from eth_abi.registry import (
     ABIRegistry,
@@ -82,20 +83,18 @@ class ABIEncoder(BaseABICoder):
         :returns: ``True`` if ``arg`` is encodable as a value of the ABI type
             ``typ``.  Otherwise, ``False``.
         """
-        if not self.is_encodable_type(typ):
+        try:
+            encoder = self._registry.get_encoder(typ)
+        except MultipleEntriesFound:
+            raise
+        except Exception:
             return False
 
-        encoder = self._registry.get_encoder(typ)
-
+        validate = getattr(encoder, "validate_value", encoder)
         try:
-            encoder.validate_value(arg)
+            validate(arg)
         except EncodingError:
             return False
-        except AttributeError:
-            try:
-                encoder(arg)
-            except EncodingError:
-                return False
 
         return True
 

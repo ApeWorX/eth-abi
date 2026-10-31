@@ -7,14 +7,14 @@ class EncodingError(Exception):
     """
 
 
-class EncodingTypeError(EncodingError):
+class EncodingTypeError(EncodingError, TypeError):
     """
     Raised when trying to encode a python value whose type is not supported for
     the output ABI type.
     """
 
 
-class IllegalValue(EncodingError):
+class IllegalValue(EncodingError, ValueError):
     """
     Raised when trying to encode a python value with the correct type but with
     a value that is not considered legal for the output ABI type.

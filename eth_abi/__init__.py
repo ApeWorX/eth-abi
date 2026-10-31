@@ -10,3 +10,10 @@ from eth_abi.abi import (
 )
 
 __version__ = __version("eth-abi")
+__all__ = (
+    "__version__",
+    "decode",
+    "encode",
+    "is_encodable",
+    "is_encodable_type",
+)

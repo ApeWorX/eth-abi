@@ -14,6 +14,9 @@ from eth_typing.abi import (
 from eth_abi.decoding import (
     ContextFramesBytesIO,
 )
+from eth_abi.hooks import (
+    encode_with_hooks,
+)
 from eth_abi.exceptions import (
     EncodingError,
 )
@@ -68,6 +71,29 @@ class ABIEncoder(BaseABICoder):
         encoder = self._registry.get_tuple_encoder(*types)
 
         return encoder(args)
+
+    def encode_with_hooks(self, types: Iterable[TypeStr], args: Iterable[Any]) -> bytes:
+        """
+        Encodes the python values in ``args`` as a sequence of binary values of
+        the ABI types in ``types`` via the head-tail mechanism.  Any callable
+        hooks in ``args`` will be resolved before encoding.
+
+        :param types: A list or tuple of string representations of the ABI types
+            that will be used for encoding e.g.  ``('uint256', 'bytes[]',
+            '(int,int)')``
+        :param args: A list or tuple of python values to be encoded.  These may
+            contain callable hooks.
+
+        :returns: The head-tail encoded binary representation of the python
+            values in ``args`` as values of the ABI types in ``types``.
+        """
+        # validate encode types and args
+        validate_list_like_param(types, "types")
+        validate_list_like_param(args, "args")
+
+        encoder = self._registry.get_tuple_encoder(*types)
+
+        return encode_with_hooks(encoder, args)
 
     def is_encodable(self, typ: TypeStr, arg: Any) -> bool:
         """

@@ -411,6 +411,8 @@ TYPE_ALIAS_RE = re.compile(
     rf"\b({'|'.join(re.escape(a) for a in TYPE_ALIASES.keys())})\b"
 )
 
+_NORMALIZED_TYPE_STR_CACHE = {}
+
 
 def normalize(type_str):
     """
@@ -420,10 +422,21 @@ def normalize(type_str):
     :param type_str: The type string to be normalized.
     :returns: The canonical version of the input type string.
     """
-    return TYPE_ALIAS_RE.sub(
-        lambda match: TYPE_ALIASES[match.group(0)],
-        type_str,
-    )
+    cached = _NORMALIZED_TYPE_STR_CACHE.get(type_str)
+    if cached is not None:
+        return cached
+
+    if TYPE_ALIAS_RE.search(type_str) is None:
+        normalized = type_str
+    else:
+        normalized = TYPE_ALIAS_RE.sub(_normalize_type_alias, type_str)
+
+    _NORMALIZED_TYPE_STR_CACHE[type_str] = normalized
+    return normalized
+
+
+def _normalize_type_alias(match):
+    return TYPE_ALIASES[match.group(0)]
 
 
 parse = visitor.parse

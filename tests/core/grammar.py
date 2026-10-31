@@ -221,6 +221,19 @@ def test_normalize(type_str, normalized):
     assert normalize(type_str) == normalized
 
 
+@pytest.mark.parametrize(
+    "type_str",
+    (
+        "custom",
+        "uint256",
+        "bytes32",
+        "(uint256,bytes32)",
+    ),
+)
+def test_normalize_without_aliases_returns_type_str(type_str):
+    assert normalize(type_str) == type_str
+
+
 def test_basic_type_item_type_throws_errors():
     bt = parse("int256")
 

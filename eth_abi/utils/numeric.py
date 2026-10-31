@@ -12,7 +12,8 @@ TEN = decimal.Decimal(10)
 
 
 def ceil32(x: int) -> int:
-    return x if x % 32 == 0 else x + 32 - (x % 32)
+    remainder = x % 32
+    return x if remainder == 0 else x + 32 - remainder
 
 
 def compute_unsigned_integer_bounds(num_bits: int) -> tuple[int, int]:

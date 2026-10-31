@@ -199,6 +199,56 @@ def test_abi_decode_with_shorter_data_than_32_bytes(types, hex_data, expected):
         decode(types, bytes.fromhex(hex_data))
 
 
+def test_abi_decode_bytes_array_with_truncated_padding():
+    """
+    Test that bytes[] arrays with complete content but missing padding
+    can be decoded in non-strict mode but raise an error in strict mode.
+
+    This is a regression test for the fix that allows decoding ABI-encoded
+    bytes[] data where content is complete but trailing padding is missing.
+    """
+    # Data from decode_multicall.py - represents bytes[] with truncated padding
+    data = bytes.fromhex(
+        "0000000000000000000000000000000000000000000000000000000000000020"  # offset to bytes[] array # noqa: E501
+        "0000000000000000000000000000000000000000000000000000000000000001"  # array length (1) # noqa: E501
+        "0000000000000000000000000000000000000000000000000000000000000020"  # offset to first element # noqa: E501
+        "0000000000000000000000000000000000000000000000000000000000000104"  # element length (260 bytes) # noqa: E501
+        # 260 bytes of content (truncated from original due to missing padding)
+        "b858183f0000000000000000000000000000000000000000000000000000000000000020"
+        "0000000000000000000000000000000000000000000000000000000000000080"
+        "00000000000000000000000078ba4c2b0cc3385ca967d250b2313f187d5002f3"
+        "000000000000000000000000000000000000000000000000000000000a59d6f2"
+        "000000000000000000000000000000000000000000000000008f3316b7531da4"
+        "000000000000000000000000000000000000000000000000000000000000002b"
+        "a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000064c02aaa39b223fe8d0a"
+        "0e5c4f27ead9083c756cc2000000000000000000000000000000000000000000"
+        # Note: Missing ~26 bytes of padding here that would normally pad to 288 total bytes # noqa: E501
+    )
+
+    with pytest.raises(InsufficientDataBytes, match="Tried to read 288 bytes"):
+        decode(["bytes[]"], data, strict=True)
+
+    result = decode(["bytes[]"], data, strict=False)
+
+    # Validate the structure
+    assert len(result) == 1  # One top-level element (the bytes[] array)
+    assert len(result[0]) == 1  # One element in the bytes[] array
+    assert len(result[0][0]) == 260  # The element should be 260 bytes
+
+    # Validate the decoded content matches expected hex
+    expected_hex = (
+        "b858183f0000000000000000000000000000000000000000000000000000000000000020"
+        "0000000000000000000000000000000000000000000000000000000000000080"
+        "00000000000000000000000078ba4c2b0cc3385ca967d250b2313f187d5002f3"
+        "000000000000000000000000000000000000000000000000000000000a59d6f2"
+        "000000000000000000000000000000000000000000000000008f3316b7531da4"
+        "000000000000000000000000000000000000000000000000000000000000002b"
+        "a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000064c02aaa39b223fe8d0a"
+        "0e5c4f27ead9083c756cc2000000000000000000000000000000000000000000"
+    )
+    assert result[0][0].hex() == expected_hex
+
+
 @pytest.mark.parametrize(
     "typestring,malformed_payload",
     (

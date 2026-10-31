@@ -609,6 +609,13 @@ class ByteStringDecoder(SingleDecoder):
                 raise NonEmptyPaddingBytes(
                     f"Padding bytes were not empty: {repr(padding_bytes)}"
                 )
+        else:
+            # In non-strict mode, be more flexible with truncated data
+            if len(data) < data_length:
+                # Not even enough data for the declared content length
+                raise InsufficientDataBytes(
+                    f"Tried to read {data_length} bytes, only got {len(data)} bytes"
+                )
 
         return data[:data_length]
 

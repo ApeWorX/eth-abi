@@ -169,6 +169,16 @@ class HeadTailDecoder(BaseDecoder):
         return value
 
 
+def _get_head_size(decoder: BaseDecoder) -> int:
+    if getattr(decoder, "is_dynamic", False):
+        return 32
+    if isinstance(decoder, TupleDecoder):
+        return sum(map(_get_head_size, decoder.decoders))
+    if isinstance(decoder, SizedArrayDecoder):
+        return decoder.array_size * _get_head_size(decoder.item_decoder)
+    return 32
+
+
 class TupleDecoder(BaseDecoder):
     decoders: tuple[BaseDecoder, ...] | None = None
 
@@ -193,10 +203,7 @@ class TupleDecoder(BaseDecoder):
         Verify that all pointers point to a valid location in the stream.
         """
         current_location = stream.tell()
-        len_of_head = sum(
-            getattr(decoder, "array_size", 1) for decoder in self.decoders
-        )
-        end_of_offsets = current_location + 32 * len_of_head
+        end_of_offsets = current_location + sum(map(_get_head_size, self.decoders))
         total_stream_length = len(stream.getbuffer())
         for decoder in self.decoders:
             if isinstance(decoder, HeadTailDecoder):

@@ -73,13 +73,22 @@ encoding.  You can encode values in this format like so:
     >>> encode_packed(['uint32'], [12345])
     b'\x00\x0009'
 
-    >>> # encode_packed for multiple ABI types
-    >>> encode_packed(['int8[]', 'uint32'], ([1, 2, 3, 4], 12345))
-    b'\x01\x02\x03\x04\x00\x0009'
+    >>> # Scalars stay compact; array elements are padded to 32 bytes.
+    >>> encode_packed(['int8'], [-1]).hex()
+    'ff'
+    >>> encode_packed(['int8[]'], [[-1]]).hex()
+    'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+    >>> encode_packed(['uint8[2]', 'uint8'], [[1, 2], 3]) == (
+    ...     (1).to_bytes(32, 'big') + (2).to_bytes(32, 'big') + b'\x03'
+    ... )
+    True
 
-    >>> # encode_packed for a tuple with `uint8[]` and `uint32` types
-    >>> encode_packed(['(int8[],uint32)'], [([1, 2, 3, 4], 12345)])
-    b'\x01\x02\x03\x04\x00\x0009'
+Fixed-size scalar array elements use their normal word padding, including sign
+extension for signed numbers and right padding for fixed-length bytes. Array
+lengths are not included. This also applies to arrays used inside eth-abi's
+experimental tuple and nested-array extensions, which Solidity's
+``abi.encodePacked`` does not support. Dynamic ``bytes`` and ``string`` array
+element padding is not covered by this correction.
 
 
 More information about this encoding format is available at

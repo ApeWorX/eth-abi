@@ -1,5 +1,6 @@
 import abc
 import codecs
+import copy
 import decimal
 from collections.abc import (
     Callable,
@@ -646,6 +647,14 @@ class PackedArrayEncoder(BaseArrayEncoder):
     @parse_type_str(with_arrlist=True)
     def from_type_str(cls, abi_type, registry):
         item_encoder = registry.get_encoder(abi_type.item_type.to_type_str())
+        if (
+            isinstance(item_encoder, FixedSizeEncoder)
+            and item_encoder.data_byte_size < 32
+        ):
+            # Array elements occupy a word, unlike standalone packed scalars.
+            # The registry caches encoders: do not widen the shared instance.
+            item_encoder = copy.copy(item_encoder)
+            item_encoder.data_byte_size = 32
 
         array_spec = abi_type.arrlist[-1]
         if len(array_spec) == 1:

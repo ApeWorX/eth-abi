@@ -1,0 +1,1 @@
+Correct packed array encoding for fixed-size scalar elements: pad each element to 32 bytes, with signed extension and byte-string right padding as appropriate, without changing standalone scalar encoding or mutating cached registry encoders. Dynamic bytes/string elements and tuple packing remain outside this correction.

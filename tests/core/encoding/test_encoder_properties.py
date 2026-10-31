@@ -435,7 +435,7 @@ def test_encode_signed_fixed(value, value_bit_size, frac_places, data_byte_size)
 
     with decimal.localcontext(abi_decimal_context):
         residue = value % (TEN**-frac_places)
-    if residue > 0:
+    if residue != 0:
         pattern = (
             r"Value .* cannot be encoded by SignedFixedEncoder: "
             r"residue .* outside allowed"

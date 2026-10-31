@@ -1,0 +1,5 @@
+Reject signed fixed-point values with illegal fractional precision. Previously
+negative values whose scaling by ``10**frac_places`` was non-integral (e.g.
+``Decimal("-0.05")`` for ``fixed128x1``) slipped past validation and were
+silently truncated to a corrupt encoding, while their positive counterparts
+correctly raised ``IllegalValue``.

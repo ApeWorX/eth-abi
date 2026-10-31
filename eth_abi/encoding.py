@@ -349,7 +349,7 @@ class BaseFixedEncoder(NumberEncoder):
         with decimal.localcontext(abi_decimal_context):
             residue = value % (TEN**-self.frac_places)
 
-        if residue > 0:
+        if residue != 0:
             self.invalidate_value(
                 value,
                 exc=IllegalValue,

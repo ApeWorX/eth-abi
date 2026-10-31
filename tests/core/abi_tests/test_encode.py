@@ -1,9 +1,15 @@
 import re
+from decimal import (
+    Decimal,
+)
 
 import pytest
 
 from eth_abi import (
     encode,
+)
+from eth_abi.exceptions import (
+    IllegalValue,
 )
 from eth_abi.grammar import (
     parse,
@@ -138,3 +144,18 @@ def test_abi_encode_raises_for_zero_sized_tuple_types(
         match=re.escape('Zero-sized tuple types "()" are not supported.'),
     ):
         encode([zero_sized_tuple_type], [python_value])
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        Decimal("-0.05"),  # negative, illegal precision for fixed128x1
+        Decimal("0.05"),  # positive twin
+    ),
+)
+def test_abi_encode_rejects_signed_fixed_with_illegal_precision(value):
+    # a value whose scaling by 10**frac_places is non-integral must be rejected
+    # regardless of sign (previously negatives slipped past and were silently
+    # truncated, e.g. -0.05 encoded to a value decoding as -25.6).
+    with pytest.raises(IllegalValue, match="outside allowed fractional precision"):
+        encode(["fixed128x1"], [value])

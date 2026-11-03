@@ -80,7 +80,7 @@ dev = [
 include-package-data = true
 
 [tool.setuptools.packages.find]
-exclude = ["scripts", "scripts.*", "tests", "tests.*"]
+exclude = ["docs", "docs.*", "scripts", "scripts.*", "tests", "tests.*"]
 
 [tool.setuptools.package-data]
 eth_abi = ["py.typed"]

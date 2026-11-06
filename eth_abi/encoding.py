@@ -11,6 +11,10 @@ from typing import (
     Any,
 )
 
+from eth_typing import (
+    Address,
+    AnyAddress,
+)
 from eth_utils import (
     int_to_big_endian,
     is_address,
@@ -448,8 +452,29 @@ class PackedSignedFixedEncoder(SignedFixedEncoder):
 
 class AddressEncoder(Fixed32ByteSizeEncoder):
     value_bit_size = 20 * 8
-    encode_fn = staticmethod(to_canonical_address)
     is_big_endian = True
+
+    @staticmethod
+    def encode_fn(address: AnyAddress | str | bytes) -> Address:
+        if type(address) is bytes and len(address) == 20:
+            return Address(address)
+        if type(address) is str:
+            if len(address) == 40:
+                hex_address = address
+            elif len(address) == 42 and address[:2] in ("0x", "0X"):
+                hex_address = address[2:]
+            else:
+                return to_canonical_address(address)
+            try:
+                raw_address = bytes.fromhex(hex_address)
+            except ValueError:
+                pass
+            else:
+                # fromhex also accepts whitespace; an address must contain
+                # exactly forty hexadecimal digits.
+                if len(raw_address) == 20:
+                    return Address(raw_address)
+        return to_canonical_address(address)
 
     @classmethod
     def validate_value(cls, value):

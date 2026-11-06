@@ -134,13 +134,21 @@ class TupleEncoder(BaseEncoder):
 
         raw_head_chunks = []
         tail_chunks = []
+        is_static = True
         for value, encoder in zip(values, self.encoders, strict=False):
             if getattr(encoder, "is_dynamic", False):
+                is_static = False
                 raw_head_chunks.append(None)
                 tail_chunks.append(encoder(value))
             else:
                 raw_head_chunks.append(encoder(value))
                 tail_chunks.append(b"")
+
+        # Static tuples already consist entirely of their encoded head.  Keep
+        # the general path for custom byte-like results, whose length methods
+        # may have behavior beyond reporting the size of a bytes object.
+        if is_static and all(type(chunk) is bytes for chunk in raw_head_chunks):
+            return b"".join(raw_head_chunks)
 
         head_length = sum(32 if item is None else len(item) for item in raw_head_chunks)
         tail_offsets = (0,) + tuple(accumulate(map(len, tail_chunks[:-1])))

@@ -51,6 +51,27 @@ from eth_abi.utils.string import (
     abbr,
 )
 
+_DEFAULT_IS_INTEGER = is_integer
+_DEFAULT_IS_LIST_LIKE = is_list_like
+
+
+def _is_valid_type(checker: Callable[..., Any], value: Any) -> Any:
+    if checker is _DEFAULT_IS_INTEGER and type(value) is int:
+        return True
+    # Drop our reference even if the checker raises, so a temporary checker is
+    # released at the same point as with the previous inline call.
+    try:
+        return checker(value)
+    finally:
+        del checker
+
+
+def _is_list_like(value: Any) -> bool:
+    return (
+        is_list_like is _DEFAULT_IS_LIST_LIKE
+        and (type(value) is list or type(value) is tuple)
+    ) or is_list_like(value)
+
 
 class BaseEncoder(BaseCoder, metaclass=abc.ABCMeta):
     """
@@ -109,7 +130,7 @@ class TupleEncoder(BaseEncoder):
             raise ValueError("`encoders` may not be none")
 
     def validate_value(self, value):
-        if not is_list_like(value):
+        if not _is_list_like(value):
             self.invalidate_value(
                 value,
                 msg="must be list-like object such as array or tuple",
@@ -262,7 +283,7 @@ class NumberEncoder(Fixed32ByteSizeEncoder):
     def validate_value(self, value):
         if self.type_check_fn is None:
             raise AssertionError("`type_check_fn` is None")
-        if not self.type_check_fn(value):
+        if not _is_valid_type(self.type_check_fn, value):
             self.invalidate_value(value)
 
         illegal_value = self.illegal_value_fn is not None and self.illegal_value_fn(
@@ -588,7 +609,7 @@ class BaseArrayEncoder(BaseEncoder):
             raise ValueError("`item_encoder` may not be none")
 
     def validate_value(self, value):
-        if not is_list_like(value):
+        if not _is_list_like(value):
             self.invalidate_value(
                 value,
                 msg="must be list-like such as array or tuple",

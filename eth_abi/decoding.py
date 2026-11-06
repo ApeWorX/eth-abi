@@ -9,6 +9,11 @@ from typing import (
     Any,
 )
 
+from eth_typing import (
+    AnyAddress,
+    HexAddress,
+    HexStr,
+)
 from eth_utils import (
     big_endian_to_int,
     to_normalized_address,
@@ -449,7 +454,12 @@ class BooleanDecoder(Fixed32ByteSizeDecoder):
 class AddressDecoder(Fixed32ByteSizeDecoder):
     value_bit_size = 20 * 8
     is_big_endian = True
-    decoder_fn = staticmethod(to_normalized_address)
+
+    @staticmethod
+    def decoder_fn(value: AnyAddress | str | bytes) -> HexAddress:
+        if type(value) is bytes and len(value) == 20:
+            return HexAddress(HexStr("0x" + value.hex()))
+        return to_normalized_address(value)
 
     @parse_type_str("address")
     def from_type_str(cls, abi_type, registry):

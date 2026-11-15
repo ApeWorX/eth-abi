@@ -279,6 +279,7 @@ class UnsignedIntegerEncoder(NumberEncoder):
     encode_fn = staticmethod(int_to_big_endian)
     bounds_fn = staticmethod(compute_unsigned_integer_bounds)
     type_check_fn = staticmethod(is_integer)
+
     @staticmethod
     def _convert_hex_string(value):
         """
@@ -292,14 +293,14 @@ class UnsignedIntegerEncoder(NumberEncoder):
                 return int(value, 16)
             except ValueError:
                 pass
-                return value
+
+        return value
 
     def validate_value(self, value):
         super().validate_value(self._convert_hex_string(value))
 
     def encode(self, value):
         return super().encode(self._convert_hex_string(value))
-        
 
     @parse_type_str("uint")
     def from_type_str(cls, abi_type, registry):

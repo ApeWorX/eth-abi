@@ -24,6 +24,11 @@ from hypothesis import (
     strategies as st,
 )
 
+from eth_abi import (
+encode,
+is_encodable,
+)
+
 from eth_abi.encoding import (
     AddressEncoder,
     BooleanEncoder,
@@ -119,6 +124,56 @@ def test_encode_unsigned_integer(integer_value, value_bit_size, data_byte_size):
     encoded_value = encoder(integer_value)
 
     assert encoded_value == expected_value
+
+
+@pytest.mark.parametrize(
+    "hex_value,expected_value",
+    (
+        # example from https://github.com/ApeWorX/eth-abi/issues/269
+        (
+            "0x2b5e3af16b1880000",
+            b"\x00" * 23 + b"\x02\xb5\xe3\xaf\x16\xb1\x88\x00\x00",
+        ),
+        ("0x0", b"\x00" * 32),
+        ("0xff", b"\x00" * 31 + b"\xff"),
+        # uppercase prefix and digits are accepted
+        ("0XFF", b"\x00" * 31 + b"\xff"),
+        # odd-length hex strings are accepted
+        ("0x123", b"\x00" * 30 + b"\x01\x23"),
+        ("0x" + "f" * 64, b"\xff" * 32),
+    ),
+)
+def test_encode_unsigned_integer_hex_string(hex_value, expected_value):
+    assert encode_uint_256(hex_value) == expected_value
+    assert encode(["uint256"], [hex_value]) == expected_value
+    assert is_encodable("uint256", hex_value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "0x",  # no digits after the prefix
+        "0xZZ",  # invalid hex digits
+        "hello",  # not a hex string
+        "123",  # decimal strings are not accepted
+        "-0x1",  # negative hex strings are not accepted
+    ),
+)
+def test_encode_unsigned_integer_rejects_invalid_strings(value):
+    with pytest.raises(EncodingTypeError):
+        encode_uint_256(value)
+
+
+def test_encode_unsigned_integer_hex_string_out_of_bounds():
+    with pytest.raises(ValueOutOfBounds):
+        encode_uint_256("0x1" + "00" * 32)
+
+
+def test_encode_signed_integer_rejects_hex_strings():
+    encoder = SignedIntegerEncoder(value_bit_size=256, data_byte_size=32)
+
+with pytest.raises(EncodingTypeError):
+    encoder("0xff")
 
 
 @settings(max_examples=250)

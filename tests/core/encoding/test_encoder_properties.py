@@ -25,10 +25,9 @@ from hypothesis import (
 )
 
 from eth_abi import (
-encode,
-is_encodable,
+    encode,
+    is_encodable,
 )
-
 from eth_abi.encoding import (
     AddressEncoder,
     BooleanEncoder,
@@ -172,8 +171,8 @@ def test_encode_unsigned_integer_hex_string_out_of_bounds():
 def test_encode_signed_integer_rejects_hex_strings():
     encoder = SignedIntegerEncoder(value_bit_size=256, data_byte_size=32)
 
-with pytest.raises(EncodingTypeError):
-    encoder("0xff")
+    with pytest.raises(EncodingTypeError):
+        encoder("0xff")
 
 
 @settings(max_examples=250)

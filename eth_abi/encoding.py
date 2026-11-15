@@ -279,6 +279,27 @@ class UnsignedIntegerEncoder(NumberEncoder):
     encode_fn = staticmethod(int_to_big_endian)
     bounds_fn = staticmethod(compute_unsigned_integer_bounds)
     type_check_fn = staticmethod(is_integer)
+    @staticmethod
+    def _convert_hex_string(value):
+        """
+        Converts hex strings, such as those commonly returned by JSON-RPC
+        endpoints, to integers.  Any other value is returned unchanged so
+        that it goes through the standard validation logic, which accepts
+        or rejects it as usual.
+        """
+        if is_text(value) and value.lower().startswith("0x"):
+            try:
+                return int(value, 16)
+            except ValueError:
+                pass
+                return value
+
+    def validate_value(self, value):
+        super().validate_value(self._convert_hex_string(value))
+
+    def encode(self, value):
+        return super().encode(self._convert_hex_string(value))
+        
 
     @parse_type_str("uint")
     def from_type_str(cls, abi_type, registry):

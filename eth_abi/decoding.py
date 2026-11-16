@@ -596,7 +596,11 @@ class ByteStringDecoder(SingleDecoder):
         data_length = decode_uint_256(stream)
         padded_length = ceil32(data_length)
 
-        data = stream.read(padded_length)
+        try:
+            data = stream.read(padded_length)
+        except OverflowError:
+            # A uint256 length can exceed Py_ssize_t. Such a read reaches EOF.
+            data = stream.read()
 
         if self.strict:
             if len(data) < padded_length:

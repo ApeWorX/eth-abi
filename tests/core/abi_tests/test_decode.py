@@ -1,4 +1,5 @@
 import re
+import sys
 
 import pytest
 
@@ -197,6 +198,38 @@ def test_abi_decode_with_shorter_data_than_32_bytes(types, hex_data, expected):
     # without the flag set (i.e. assert the default behavior is always ``strict=True``).
     with pytest.raises(InsufficientDataBytes):
         decode(types, bytes.fromhex(hex_data))
+
+
+@pytest.mark.parametrize("strict", (True, False))
+@pytest.mark.parametrize(
+    "data_length",
+    (33, sys.maxsize - 31, sys.maxsize - 30, sys.maxsize, sys.maxsize + 1, 2**256 - 1),
+)
+@pytest.mark.parametrize(
+    "type_str,payload,expected",
+    (
+        ("bytes", b"", b""),
+        ("bytes", b"abc", b"abc"),
+        ("string", b"", ""),
+        ("string", b"abc", "abc"),
+    ),
+)
+def test_abi_decode_oversized_dynamic_length(
+    type_str, payload, expected, data_length, strict
+):
+    data = (32).to_bytes(32, "big") + data_length.to_bytes(32, "big") + payload
+
+    if strict:
+        padded_length = ((data_length + 31) // 32) * 32
+        with pytest.raises(
+            InsufficientDataBytes,
+            match=(
+                f"^Tried to read {padded_length} bytes, only got {len(payload)} bytes$"
+            ),
+        ):
+            decode([type_str], data, strict=strict)
+    else:
+        assert decode([type_str], data, strict=strict) == (expected,)
 
 
 @pytest.mark.parametrize(

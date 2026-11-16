@@ -3,6 +3,16 @@ Release Notes
 
 .. towncrier release notes start
 
+Unreleased
+----------
+
+Bugfixes
+~~~~~~~~
+
+- Handle oversized ``bytes`` and ``string`` lengths without leaking ``OverflowError``.
+  Strict decoding raises ``InsufficientDataBytes`` for truncated data, while
+  non-strict decoding continues to return the available data.
+
 eth-abi v6.0.0-beta.1 (2025-12-17)
 ----------------------------------
 
